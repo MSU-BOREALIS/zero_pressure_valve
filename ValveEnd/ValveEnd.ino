@@ -5,7 +5,7 @@
  * Written for MSGC BOREALIS
  * Created:   April 2, 2017
  * Last Edit: April 2, 2017
- * 
+ *
  * Environment:       Default Libraries, Arduino 1.6.12
  * Hardware Drivers:  Programmed using Breadboard 1.6.x Hardware settings (Atmega328p 8 MHz internal)
  *                    AVR Pocket Programmer - USBtiny Programmer over ISP interface
@@ -31,7 +31,7 @@ const char valvecycle = 'S';
 #define Ab3 207.65
 #define C5  523.25
 #define BPM 120                   // you can change this value changing all the others
-#define Q 60000/BPM               // quarter 1/4 
+#define Q 60000/BPM               // quarter 1/4
 #define E Q/2                     // eighth 1/8
 #define S Q/4                     // sixteenth 1/16
 
@@ -58,8 +58,8 @@ const bool debugMode = false;          //true if debugging
 void message(uint8_t errno) {
   uint8_t i;
   for (i=0; i<errno; i++) {
-    tone(speaker,F3*(1+i),E);                         
-    tone(speaker,Ab3*(1+i),S);                         
+    tone(speaker,F3*(1+i),E);
+    tone(speaker,Ab3*(1+i),S);
     delay(550);
   }
 delay(3000);
@@ -73,9 +73,9 @@ void setup() {
   Serial.begin(9600);                           //Initialize Serial Com with baudrate
   Serial.setTimeout(1000);                      //Set recieve timeout in milliseconds
   while(Serial.available() > 0){
-      Serial.read(); 
+      Serial.read();
   }
-  
+
   incoming = '0'; //Initialize array to ascii code zeros
   pinMode(jumper,INPUT);
   pinMode(heartbeat,OUTPUT);
@@ -87,17 +87,17 @@ void setup() {
   pinMode(closeValve, OUTPUT);
   digitalWrite(closeValve, LOW);
 
-  //Timer Initialization:             
+  //Timer Initialization:
   byte test = 0x00;
   byte test1 = 0x00;
   int timer = 0;
   EEPROM.get(timer_addr,test);
   EEPROM.get(timer_addr+1,test1);
-  if((test == 0xFF && test1 == 0xFF)|(EEPROM.get(timer_addr,timer) > timer_overflow+maxtriggeredtime)){            
-    int zero = 0;                             
-    EEPROM.put(timer_addr, zero);              
+  if((test == 0xFF && test1 == 0xFF)|(EEPROM.get(timer_addr,timer) > timer_overflow+maxtriggeredtime)){
+    int zero = 0;
+    EEPROM.put(timer_addr, zero);
   }
-  
+
   //Interrupt Initialization (Timer1):
   cli();                                        //disable global interrupts
   TCCR1A = 0;                                   //set entire TCCR1A register to 0
@@ -112,11 +112,18 @@ void setup() {
 
 void loop() {
   long temptime = millis();                     //Save runtime to a temp variable
-  
-  while(Serial.available() > 0){                                    //Need to let the buffer build up between reads                   
-    incoming = Serial.read();                     //Grab command from XBEE
+  if(first_cycle == true){
+    while(Serial.available() > 0){                                    //Need to let the buffer build up between reads
+      incoming = Serial.read();                     //Grab command from XBEE
+      incoming = Serial.read();                     //Grab command from XBEE
+      first_cycle = false;
+    }
+  }else{
+      while(Serial.available() > 0){                                    //Need to let the buffer build up between reads
+        incoming = Serial.read();                     //Grab command from XBEE
+      }
+
   }
-  
   if(incoming == openvalve){  //Reset incoming to defaults
     lastincome = incoming;
     incoming = '0';
@@ -126,7 +133,7 @@ void loop() {
       delay(102320);
       digitalWrite(openValve, LOW);
       state = true;
-    
+
       if(debugMode){
       message(2);
       }
@@ -135,12 +142,12 @@ void loop() {
       }
    }else{
     digitalWrite(openValve,LOW);
-    
+
     while(Serial.available() > 0){+
       Serial.read();                            //Empty any characters in buffer (prevents multiple commands from queuing)
     }
    }
-   
+
   }else if(incoming == closevalve){
     lastincome = incoming;
     incoming = '0';
@@ -150,14 +157,14 @@ void loop() {
       delay(102320);
       digitalWrite(closeValve, LOW);
       state = false;
-    
+
       if(debugMode){
       message(3);
       }
       while(Serial.available() > 0){
       Serial.read();                            //Empty any characters in buffer (prevents multiple commands from queuing)
       }
-    
+
     }else{
       digitalWrite(closeValve, LOW);
 
@@ -216,7 +223,7 @@ ISR(TIMER1_COMPA_vect)                          //1 Hz interrupt
     timer++;
     //Write Timer to EEPROM for preservation
     EEPROM.put(timer_addr,timer);
-    
+
     //Timer Trigger and Timeout
     if(timer >= timer_overflow && timer < timer_overflow+maxtriggeredtime){
 //    digitalWrite(cutdown,HIGH);                 //Short MOSFET drain and source
@@ -228,7 +235,7 @@ ISR(TIMER1_COMPA_vect)                          //1 Hz interrupt
       //Change Heartbeat Flash Rate to indicate switch in timer disable position
       OCR1A = 500;
     }
-    else{  
+    else{
       //1Hz Interrupt Counter
       OCR1A = interrupt_counter;
     }
